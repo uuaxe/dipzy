@@ -12,15 +12,15 @@ class Twitter:
             "Authorization": f"Bearer {bearer_token}"
         }
 
-    def _request(self, method, url, params={}, **kwargs):
-        response = requests.request(
+    def _request(self, endpoint, method="GET", params=None, **kwargs):
+        url = self.base_url + endpoint 
+        r = requests.request(
             method, url, headers=self.headers, params=params, **kwargs
         )
-        if response.status_code != 200 and response.status_code != 201:
-            raise Exception(
-                f"Request returned an error: {response.status_code} {response.text}"
-            )
-        return response
+        if r.status_code != 200 and r.status_code != 201:
+            raise Exception(f"Request error: {r.status_code} {r.text}")
+        
+        return r
 
     # Users endpoints #
 
@@ -39,13 +39,13 @@ class Twitter:
         if usernames is None:
             print("Assuming that user IDs are provided.")
             params["ids"] = user_ids,
-            url = self.base_url + "/users"
+            endpoint = "/users"
         else:
             params["usernames"] = usernames
-            url = self.base_url + "/users/by"
+            endpoint = "/users/by"
 
-        response = self._request("GET", url, params)
-        return response.json()["data"]
+        r = self._request(endpoint, params=params)
+        return r.json()["data"]
 
     def get_user_tweets(self, user_id, tweet_fields="created_at", **kwargs):
         '''
@@ -57,11 +57,11 @@ class Twitter:
                 possibly_sensitive, promoted_metrics, public_metrics, referenced_tweets,
                 source, text, and withheld
         '''
-        url = self.base_url + f"/users/{user_id}/tweets"
+        endpoint = "/users/{user_id}/tweets"
         params = {"tweet.fields": tweet_fields}
         params.update(kwargs)
-        response = self._request("GET", url, params)
-        return response.json() 
+        r = self._request(endpoint, params=params)
+        return r.json() 
 
     # List endpoints #
 
@@ -73,17 +73,17 @@ class Twitter:
                 pinned_tweet_id, profile_image_url, protected,
                 public_metrics, url, username, verified, and withheld
         '''
-        url = self.base_url + f"/lists/{list_id}/members"
+        endpoint = "/lists/{list_id}/members"
         params = {"user.fields": user_fields}
-        response = self._request("GET", url, params)
-        return response.json() 
+        r = self._request(endpoint, params=params)
+        return r.json() 
     
     # Rules endpoint
 
     def get_rules(self) -> dict:
-        url = self.base_url + f"/tweets/search/stream/rules"
-        response = self._request("GET", url)
-        return response.json()["data"]
+        endpoint = "/tweets/search/stream/rules"
+        r = self._request(endpoint)
+        return r.json()["data"]
 
     def delete_all_rules(self, rules: dict) -> None:
         if rules is None or "data" not in rules:
@@ -91,21 +91,21 @@ class Twitter:
 
         rule_ids = list(map(lambda rule: rule["id"], rules["data"]))
         payload = {"delete": {"ids": rule_ids}}
-        url = self.base_url + f"/tweets/search/stream/rules"
-        response = self._request("POST", url, json=payload)
-        print(json.dumps(response.json()))
+        endpoint = "/tweets/search/stream/rules"
+        r = self._request(endpoint, method="POST", json=payload)
+        print(json.dumps(r.json()))
 
     def set_rules(self, rules: list) -> None:
         # You can adjust the rules if needed
         payload = {"add": rules}
-        url = self.base_url + f"/tweets/search/stream/rules"
-        response = self._request("POST", url, json=payload)
-        print(json.dumps(response.json()))
+        endpoint = "/tweets/search/stream/rules"
+        r = self._request(endpoint, method="POST", json=payload)
+        print(json.dumps(r.json()))
 
     def get_stream(self, params={
         "tweet.fields": "created_at",
         "expansions": "author_id"
     }):
-        url = self.base_url + f"/tweets/search/stream"
-        response = self._request("GET", url, params, stream=True)
-        return response
+        endpoint = "/tweets/search/stream"
+        r = self._request(endpoint, method="GET", params=params, stream=True)
+        return r

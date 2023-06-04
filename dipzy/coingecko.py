@@ -6,10 +6,18 @@ import pandas as pd
 logger = logging.getLogger(__name__) # module-level logger
 
 class CoinGecko:
-    coingecko_url = 'https://api.coingecko.com/api/v3/'
+    base_url = 'https://api.coingecko.com/api/v3'
 
-    def __init__(self, base_url=coingecko_url):
+    def __init__(self):
         self.base_url = base_url
+
+    def _request(self, endpoint, method="GET", params=None, **kwargs):
+        url = self.base_url + endpoint 
+        r = requests.request(method, url, params=params, **kwargs)
+        if r.status_code != 200 and r.status_code != 201:
+            raise Exception(f"Request error: {r.status_code} {r.text}")
+        
+        return r
 
     def convert_symbols(self, symbols=None):
         '''
@@ -22,8 +30,9 @@ class CoinGecko:
         Returns:
             pandas.Series: Coingecko IDs
         ''' 
-        query_url = self.base_url + 'coins/list'
-        coingecko_tokens = pd.read_json(query_url)
+        endpoint =  "/coins/list"
+        r = self._request(endpoint)
+        coingecko_tokens = pd.read_json(r.json())
         coingecko_tokens.set_index('symbol', inplace=True)
         
         if symbols is None:
@@ -64,24 +73,24 @@ class CoinGecko:
         Return:
             pandas.DataFrame: Prices and percentage change of tokens.
         '''
-        query_url = self.base_url + 'coins/markets'
+        endpoint = "/coins/markets"
         
         if ids is not None:
             ids_str = ','.join(ids)
-            query = {
+            params = {
                 'vs_currency': 'usd',
                 'ids': ids_str,
                 'order': order,
                 'price_change_percentage': timepoints
             }
         else:
-            query = {
+            params = {
                 'vs_currency': 'usd',
                 'order': 'volume_desc',
                 'price_change_percentage': timepoints
             }
         
-        response = requests.get(query_url, params=query)
+        r = self._request(endpoint, params=params)
         data = pd.DataFrame(response.json())
         
         # Filter out unnecessary info from data
@@ -97,5 +106,3 @@ class CoinGecko:
         # data_selected.sort_values('symbol', inplace=True)
         
         return data_selected
-
-

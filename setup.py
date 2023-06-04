@@ -8,7 +8,7 @@ with open("README.md") as f:
 
 setuptools.setup(
     author="Wei Xin Chan",
-    author_email="weixin.1990@gmail.com",
+    author_email="weixin.1990@yahoo.com",
     name="dipzy",
     license="MIT",
     description="Dipzy is a Python package for interacting with different data and notification APIs.",
@@ -17,7 +17,7 @@ setuptools.setup(
     url="https://github.com/uuaxe/dipzy",
     packages=setuptools.find_packages(),
     python_requires=">=3.10",
-    install_requires=["numpy", "pandas", "requests", "telegram"],
+    install_requires=["numpy", "pandas", "requests"],
     classifiers=[
         # Trove classifiers
         # (https://pypi.python.org/pypi?%3Aaction=list_classifiers)

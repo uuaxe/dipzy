@@ -1,5 +1,6 @@
+from .alphavantage import AlphaVantage
 from .coingecko import CoinGecko
 from .twitter import Twitter
-from .telegram import TelegramBot
+from . import telegram 
 
 from . import utils

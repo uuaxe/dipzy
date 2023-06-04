@@ -8,7 +8,34 @@ Dipzy is a Python package for interacting with different data and notification/b
 import dipzy as dz
 
 twitter = dz.Twitter(bearer_token)
-dict = dz.utils.filter_dict(dict, keys)
+bot = dz.telegram.Bot(token)
+```
+
+# Installation
+
+Install directly from the GitHub repository using pip:
+
+```
+pip install git+https://github.com/uuaxe/dipzy.git
+```
+
+Alternatively, clone repository from GitHub and install using pip:
+
+```
+git clone https://github.com/uuaxe/dipzy.git
+cd dipzy
+pip install .
+```
+
+To install in development mode, replace `pip install .` with:
+```
+pip install -e .
+```
+
+To uninstall:
+
+```
+pip uninstall dipzy
 ```
 
 # Supported APIs
@@ -17,7 +44,7 @@ dict = dz.utils.filter_dict(dict, keys)
 
 - Levels of persistant data: 1) Bot 2) Chat 3) User
 - Command handlers are unable to access variables outside of the function
-- Command hanlders usually take two arguments: update and context
+- Command handlers usually take two arguments: update and context
 - Error handlers receive the raised TelegramError object in error
 - Bot sends message to specified chat IDs
 

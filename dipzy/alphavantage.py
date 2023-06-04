@@ -14,44 +14,55 @@ class AlphaVantage:
     def __init__(self, api_key):
         self.api_key = api_key
     
-    def _request(self, func, symbol, method="GET", **kwargs):
+    def _request(self, func, symbol=None, method="GET", extra_params=None, **kwargs):
         params = {
             "function": func,
             "symbol": symbol,
             "apikey": self.api_key
         }
+        if extra_params is not None:
+            params.update(extra_params)
+            
         # fixed API endpoint (i.e. URL)
-        response = requests.request(
+        r = requests.request(
             method, self.base_url, params=params, **kwargs
         )
-        if response.status_code != 200 and response.status_code != 201:
-            raise Exception(
-                f"Request returned an error: {response.status_code} {response.text}"
-            )
-        return response
+        # Alphavantage API does not reflect error in status code 
+        if "Error Message" in r.json(): 
+            raise Exception(f"Request error: {r.json()['Error Message']}")
+        
+        return r
     
-    def _batch_request(self, func, symbols: Iterable[str], method="GET") -> Iterable:
+    def _batch_request(
+        self, func, symbols: Iterable[str], method="GET", **kwargs
+    ) -> Iterable:
         # Group API calls into batches of 5 to overcome rate limit
         if isinstance(symbols, str):
             symbols = [symbols]
-            
+        
         jsons = []
         start, stop = 0, 5
         n = math.ceil(len(symbols) / 5)
         print(f"Bundling API calls into {n} batches.")
         while stop < len(symbols):
             for symbol in symbols[start:stop]:
-                jsons.append(self._request(func, symbol, method).json())
+                jsons.append(
+                    self._request(func, symbol, method, **kwargs).json()
+                )
             print("Sleeping for 1 minute before next batch.")
             time.sleep(60)
             start += 5
             stop += 5    
         # Last batch
         for symbol in symbols[start:len(symbols)]:
-            jsons.append(self._request(func, symbol, method).json())
+            jsons.append(self._request(func, symbol, method, **kwargs).json())
             
         return jsons
     
+    def get_market_status(self):
+        r = self._request("MARKET_STATUS")
+        return r
+
     def get_fundamentals(self, symbols: Iterable[str]):
         jsons = self._batch_request("OVERVIEW", symbols)
         data = pd.DataFrame(jsons)
@@ -76,3 +87,26 @@ class AlphaVantage:
         ]
         data = pd.DataFrame(prices, columns=["Symbol", "Price"]).set_index("Symbol")
         return data
+
+    def get_daily_ohlcv(
+        self, symbols: Iterable[str], outputsize="compact"
+    ) -> list | pd.DataFrame:
+        # outputsize: ["compact", "full"]
+        jsons = self._batch_request(
+            "TIME_SERIES_DAILY_ADJUSTED", symbols,
+            extra_params={"outputsize": outputsize}
+        )
+        list_ohlcv = [
+            pd.DataFrame.from_dict(
+                json['Time Series (Daily)'], orient="index", dtype='float'
+            ).sort_index() for json in jsons
+        ]
+        colnames = {colname: colname[3:] for colname in list(list_ohlcv[0])}
+        for data in list_ohlcv:
+            data.rename(columns=colnames, inplace=True)
+            data.index = pd.to_datetime(data.index)
+
+        if len(list_ohlcv) == 1:
+            return list_ohlcv[0]
+
+        return list_ohlcv
