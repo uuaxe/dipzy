@@ -14,18 +14,18 @@ class AlphaVantage:
     def __init__(self, api_key):
         self.api_key = api_key
     
-    def _request(self, func, symbol=None, method="GET", extra_params=None, **kwargs):
-        params = {
+    def _request(self, func, symbol=None, method="GET", params=None, **kwargs):
+        parameters = {
             "function": func,
             "symbol": symbol,
             "apikey": self.api_key
         }
-        if extra_params is not None:
-            params.update(extra_params)
+        if params is not None:
+            parameters.update(params)
             
         # fixed API endpoint (i.e. URL)
         r = requests.request(
-            method, self.base_url, params=params, **kwargs
+            method, self.base_url, params=parameters, **kwargs
         )
         # Alphavantage API does not reflect error in status code 
         if "Error Message" in r.json(): 
@@ -63,6 +63,40 @@ class AlphaVantage:
         r = self._request("MARKET_STATUS")
         return r
 
+    def FFR(self, interval="monthly"):
+        '''Federal funds rate
+        '''
+        r = self._request("FEDERAL_FUNDS_RATE", params={"interval": interval})
+        data = pd.DataFrame(r.json()["data"])
+        data.set_index("date", inplace=True)
+        data.index = pd.to_datetime(data.index)
+        data = data.apply(pd.to_numeric)
+        return data
+    
+    def CPI(self, interval="monthly"):
+        '''CPI
+        '''
+        r = self._request("CPI", params={"interval": interval})
+        data = pd.DataFrame(r.json()["data"])
+        data.set_index("date", inplace=True)
+        data.index = pd.to_datetime(data.index)
+        data = data.apply(pd.to_numeric)
+        return data
+
+    def price_commodities(self, commodities, interval="monthly"):
+        '''
+        Args:
+            commodities (str): [WTI, BRENT, NATURAL_GAS, COPPER, ALUMINUM,
+                WHEAT, CORN, COTTON, SUGAR, COFFEE, ALL_COMMODITIES]
+        '''
+        r = self._request(commodities, params={"interval": interval})
+        data = pd.DataFrame(r.json()["data"])
+        data.set_index("date", inplace=True)
+        data.index = pd.to_datetime(data.index)
+        data.replace({".": np.nan}, inplace=True)
+        data = data.apply(pd.to_numeric)
+        return data
+    
     def get_fundamentals(self, symbols: Iterable[str]):
         jsons = self._batch_request("OVERVIEW", symbols)
         data = pd.DataFrame(jsons)
@@ -94,7 +128,7 @@ class AlphaVantage:
         # outputsize: ["compact", "full"]
         jsons = self._batch_request(
             "TIME_SERIES_DAILY_ADJUSTED", symbols,
-            extra_params={"outputsize": outputsize}
+            params={"outputsize": outputsize}
         )
         list_ohlcv = [
             pd.DataFrame.from_dict(

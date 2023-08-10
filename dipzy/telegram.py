@@ -40,6 +40,7 @@ class Bot:
             params.update(kwargs)
 
         r = self._request("/sendMessage", params=params)
+        logger.info(f'Sent message to {chat_id}.')
         return r
 
 

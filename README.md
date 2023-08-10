@@ -6,9 +6,20 @@ Dipzy is a Python package for interacting with different data and notification/b
 
 ```
 import dipzy as dz
+from web3 import Web3
 
-twitter = dz.Twitter(bearer_token)
+# Sending message via Telegram bot 
 bot = dz.telegram.Bot(token)
+bot.send_message(chat_id, text, parse_mode="MarkdownV2")
+
+# Interacting with the blockchain
+w3 = Web3(Web3.HTTPProvider("https://rpc.ankr.com/eth"))
+dz.web3.LiquidityPool.set_defaults(w3, erc20_abi)
+curve_3pool = dz.web3.CurveLP(address, abi, n=3)
+print(curve_3pool)
+
+# Twitter API
+twitter = dz.Twitter(bearer_token)
 ```
 
 # Installation
@@ -38,7 +49,11 @@ To uninstall:
 pip uninstall dipzy
 ```
 
-# Supported APIs
+# API
+
+## web3
+
+The base `LiquidityPool` class has class attributes `w3` and `erc20_abi` which have to be set using the class setter method. These class attributes are inherited by the child class (e.g. `CurveLP`). The `LiquidityPool` inherits from an abstract base class (ABC) and has an abstract method `get_reserves` which has to be implemented by all its child classes. 
 
 ## Telegram
 
